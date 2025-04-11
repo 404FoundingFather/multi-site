@@ -6,7 +6,14 @@ This document outlines the plan for implementing features and functionality in t
 
 ## Development Approach
 
-The multi-tenant website engine will be developed using an Agile approach with two-week sprints. We'll prioritize the core infrastructure components first, focusing on tenant resolution and configuration, before moving on to the more customizable aspects like theming and content management.
+The multi-tenant website engine will be developed using a rolling development model rather than fixed sprints. This approach allows us to:
+
+1. Continuously prioritize and pull in the most valuable work as we progress
+2. Adapt quickly to changing requirements and discoveries
+3. Deliver completed features as soon as they're ready rather than waiting for sprint boundaries
+4. Maintain a clear view of priorities at all times through the Kanban board
+
+We'll still focus on the core infrastructure components first (tenant resolution and configuration), followed by theming and content management, but with flexibility to adjust priorities as needed.
 
 ## Project Roadmap
 
