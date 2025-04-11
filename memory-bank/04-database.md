@@ -131,14 +131,8 @@ const pageSnapshot = await pageRef.get();
 
 **Resolve domain to site configuration with caching:**
 ```typescript
-// Current implementation in tenant resolver
-async function resolveTenantFromDomain(domain: string): Promise<TenantConfig | null> {
-  // Check cache first
-  const cachedTenant = getCachedTenant(domain);
-  if (cachedTenant) {
-    return cachedTenant;
-  }
-
+// Current implementation in siteService.ts and middleware.ts
+async function getSiteByDomain(domain: string): Promise<TenantConfig | null> {
   // If not in cache, query Firestore
   const db = getFirestore();
   const sitesRef = collection(db, 'sites');
@@ -155,11 +149,11 @@ async function resolveTenantFromDomain(domain: string): Promise<TenantConfig | n
     const tenantData = tenantDoc.data() as TenantConfig;
     
     // Store in cache for future requests
-    cacheTenant(domain, tenantData);
+    cacheSite(domain, tenantData);
     
     return tenantData;
   } catch (error) {
-    console.error('Error resolving tenant from domain:', error);
+    console.error('Error resolving site from domain:', error);
     throw error;
   }
 }
@@ -194,44 +188,77 @@ async function resolveTenantFromDomain(domain: string): Promise<TenantConfig | n
 **Implementation:** 
 ```typescript
 // lib/cache/siteCache.ts
-import NodeCache from 'node-cache';
-import { TenantConfig } from '../firebase/schema';
+import { SiteConfig } from '../../contexts/SiteContext';
 
-// Initialize cache with TTL (time-to-live) in seconds
-const domainCache = new NodeCache({
-  stdTTL: parseInt(process.env.DOMAIN_CACHE_TTL || '300', 10),
-  checkperiod: 60,
-});
-
-// Cache getter
-export function getCachedTenant(domain: string): TenantConfig | undefined {
-  return domainCache.get<TenantConfig>(domain);
+// Define cache interface
+interface SiteCache {
+  [domainName: string]: {
+    site: SiteConfig;
+    timestamp: number;
+  };
 }
 
-// Cache setter
-export function cacheTenant(domain: string, tenant: TenantConfig): boolean {
-  return domainCache.set(domain, tenant);
-}
+// In-memory cache for sites
+const siteCache: SiteCache = {};
 
-// Cache invalidator
-export function invalidateTenantCache(domain?: string): void {
-  if (domain) {
-    domainCache.del(domain);
-  } else {
-    domainCache.flushAll();
+// Cache expiration time (in milliseconds)
+const CACHE_EXPIRATION_MS = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Gets a site from the cache by domain name
+ * @param domainName The domain name to look up
+ * @returns The cached site or null if not found or expired
+ */
+export function getCachedSite(domainName: string): SiteConfig | null {
+  const cachedItem = siteCache[domainName];
+  
+  if (!cachedItem) {
+    return null;
   }
+  
+  // Check if cache has expired
+  const now = Date.now();
+  if (now - cachedItem.timestamp > CACHE_EXPIRATION_MS) {
+    // Remove expired cache entry
+    delete siteCache[domainName];
+    return null;
+  }
+  
+  return cachedItem.site;
 }
 
-// Cache statistics
-export function getCacheStats() {
-  return domainCache.getStats();
+/**
+ * Adds or updates a site in the cache
+ * @param domainName The domain name to use as the cache key
+ * @param site The site configuration to cache
+ */
+export function cacheSite(domainName: string, site: SiteConfig): void {
+  siteCache[domainName] = {
+    site,
+    timestamp: Date.now(),
+  };
+}
+
+/**
+ * Clears the cache for a specific domain
+ * @param domainName The domain name to clear from cache
+ */
+export function clearSiteCache(domainName: string): void {
+  delete siteCache[domainName];
+}
+
+/**
+ * Clears the entire site cache
+ */
+export function clearAllSiteCache(): void {
+  Object.keys(siteCache).forEach(key => delete siteCache[key]);
 }
 ```
 
 **Cache Invalidation:**
-- Time-based (TTL) expiration for automatic refreshing
-- Manual invalidation endpoints for immediate updates
-- Cache flush capability for system-wide refreshes
+- Time-based expiration (5 minutes default) for automatic refreshing
+- Manual invalidation methods for immediate updates (`clearSiteCache`)
+- Cache flush capability for system-wide refreshes (`clearAllSiteCache`)
 
 ## Firestore Security Rules
 

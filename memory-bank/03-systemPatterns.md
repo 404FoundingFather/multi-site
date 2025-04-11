@@ -44,7 +44,7 @@ The tenant resolution middleware intercepts HTTP requests and extracts the domai
 * **Purpose**: Intercept and process HTTP requests for tenant resolution
 * **Implementation**: Next.js middleware function
 * **Key Components**: `middleware.ts` file implementing domain resolution
-* **Current Implementation**: Uses Next.js middleware API to extract hostnames from requests, resolve to tenant configurations, and inject tenant information into request headers for downstream use
+* **Current Implementation**: Uses Next.js middleware API to extract hostnames from requests, resolve to tenant configurations via `getCachedSite` and `getSiteByDomain` functions, and sets both headers and cookies to make tenant information available to both server and client components. Handles special cases for maintenance mode and inactive sites, with development-specific behavior for site-not-found scenarios.
 
 ## Code Organization
 
