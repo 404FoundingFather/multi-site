@@ -1,0 +1,108 @@
+:root {
+  /* These default values will be overridden by the ThemeContext */
+  --primaryColor: #3f51b5;
+  --secondaryColor: #f50057;
+  --backgroundColor: #ffffff;
+  --textColor: #333333;
+  --fontFamily: 'Roboto', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  font-family: var(--fontFamily);
+  background-color: var(--backgroundColor);
+  color: var(--textColor);
+}
+
+.site-wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+header {
+  background-color: var(--primaryColor);
+  color: white;
+  padding: 1rem 0;
+}
+
+.header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo img {
+  max-height: 50px;
+}
+
+nav ul {
+  display: flex;
+  list-style: none;
+}
+
+nav ul li {
+  margin-left: 1.5rem;
+}
+
+nav ul li a {
+  color: white;
+  text-decoration: none;
+}
+
+nav ul li a:hover {
+  text-decoration: underline;
+}
+
+main {
+  flex: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+  width: 100%;
+}
+
+footer {
+  background-color: var(--primaryColor);
+  color: white;
+  padding: 1rem 0;
+}
+
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+footer a {
+  color: white;
+}
+
+.btn {
+  display: inline-block;
+  background-color: var(--secondaryColor);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+}
+
+.btn:hover {
+  opacity: 0.9;
+}

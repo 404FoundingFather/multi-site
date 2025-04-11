@@ -7,9 +7,6 @@ This document tracks the current status of development tasks using a Kanban-styl
 ## Backlog (To-Do)
 
 ### High Priority
-- [P1] Set up Next.js project structure with basic routing
-- [P1] Create Firestore schema for sites and themes collections
-- [P1] Develop tenant resolution middleware based on domain
 - [P1] Implement local caching for domain lookups
 
 ### Medium Priority
@@ -20,18 +17,21 @@ This document tracks the current status of development tasks using a Kanban-styl
 
 ### Low Priority
 - [P3] Set up testing infrastructure for multi-tenant scenarios
-- [P3] Create error pages for "Site not found" and "Site inactive"
 - [P3] Document deployment strategy for hosting services
 - [P3] Create scripts for tenant creation and management
 
 ## In Progress
-- [P1] Project initialization and dependency configuration - Sarah - May 1, 2025
 - [P2] Research optimal caching strategy for domain resolution - Michael - May 1, 2025
 
 ## Under Review
 - None yet
 
 ## Completed
+- ✅ Set up Next.js project structure with basic routing - April 11, 2025
+- ✅ Create Firestore schema for sites and themes collections - April 11, 2025
+- ✅ Develop tenant resolution middleware based on domain - April 11, 2025
+- ✅ Create error pages for "Site not found" and "Site inactive" - April 11, 2025
+- ✅ Project initialization and dependency configuration - April 11, 2025
 - ✅ Project requirements documentation (PRD) - April 11, 2025
 - ✅ Technical stack selection - April 8, 2025
 - ✅ Initial project planning - April 5, 2025

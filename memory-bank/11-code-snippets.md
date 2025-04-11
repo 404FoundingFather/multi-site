@@ -389,6 +389,41 @@ export default DomainNotFoundPage;
 - Provides clear information about the error
 - Can be styled with a default theme since tenant theming won't be available
 
+## Project Structure
+
+### Initial Next.js Application Structure
+
+**Purpose:** Establish the foundation for a multi-tenant website engine with Next.js
+
+**Key Components:**
+- `middleware.ts` - Domain resolution middleware
+- `components/` - Reusable UI components
+  - `common/` - Shared components across all tenants
+  - `layouts/` - Page layout components (e.g., MainLayout.tsx)
+  - `themes/` - Theme-specific components
+- `contexts/` - React contexts
+  - `SiteContext.tsx` - Provides site configuration to components
+  - `ThemeContext.tsx` - Provides theme information to components
+- `lib/` - Core utilities and services
+  - `cache/` - Caching mechanisms (e.g., siteCache.ts)
+  - `firebase/` - Firebase integration (e.g., firebase.ts, schema.ts)
+  - `site/` - Site-specific services (e.g., siteService.ts, mockData.ts)
+  - `theme/` - Theme handling utilities
+- `pages/` - Next.js page components and routing
+  - `_app.tsx` - Application wrapper with providers
+  - `index.tsx` - Homepage
+  - `site-inactive.tsx` - Page for inactive sites
+  - `site-not-found.tsx` - Page for unknown sites
+- `styles/` - Global styles and CSS utilities
+
+**Benefits:**
+- Organized separation of concerns
+- Clear module boundaries
+- Scalable architecture for multi-tenant requirements
+- Supports the caching and configuration requirements outlined in the PRD
+
+This structure implements the architectural patterns described in the Product Requirements Document, particularly focusing on the multi-tenant routing, site configuration, and theming capabilities.
+
 ## Performance Optimizations
 
 ### Efficient Firestore Queries

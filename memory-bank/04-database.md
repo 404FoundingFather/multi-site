@@ -129,6 +129,42 @@ const pageRef = db.collection('pages')
 const pageSnapshot = await pageRef.get();
 ```
 
+**Resolve domain to site configuration with caching:**
+```typescript
+// Current implementation in tenant resolver
+async function resolveTenantFromDomain(domain: string): Promise<TenantConfig | null> {
+  // Check cache first
+  const cachedTenant = getCachedTenant(domain);
+  if (cachedTenant) {
+    return cachedTenant;
+  }
+
+  // If not in cache, query Firestore
+  const db = getFirestore();
+  const sitesRef = collection(db, 'sites');
+  const q = query(sitesRef, where('domainName', '==', domain));
+  
+  try {
+    const snapshot = await getDocs(q);
+    
+    if (snapshot.empty) {
+      return null;
+    }
+    
+    const tenantDoc = snapshot.docs[0];
+    const tenantData = tenantDoc.data() as TenantConfig;
+    
+    // Store in cache for future requests
+    cacheTenant(domain, tenantData);
+    
+    return tenantData;
+  } catch (error) {
+    console.error('Error resolving tenant from domain:', error);
+    throw error;
+  }
+}
+```
+
 ### Performance Considerations
 
 - Create composite indexes for all multi-field queries
@@ -136,17 +172,123 @@ const pageSnapshot = await pageRef.get();
 - Implement pagination for large collections using cursor-based pagination
 - Structure queries to minimize Firestore read operations
 - Consider denormalizing some data to reduce joins
+- Monitor cache hit rates to optimize TTL settings
+- Consider preloading common configurations during application startup
 
 ## Data Access Layer
 
 **ORM/Data Access Framework:** Custom repositories with Firestore Admin SDK
 
 **Key Files/Modules:**
-- `lib/firebase/firestore.js` - Firestore client initialization
-- `lib/firebase/admin.js` - Firestore Admin SDK initialization
-- `lib/repositories/SiteRepository.js` - Site data access methods
-- `lib/repositories/PageRepository.js` - Page data access methods
-- `lib/repositories/ThemeRepository.js` - Theme data access methods
+- `lib/firebase/firebase.ts` - Firestore client initialization
+- `lib/firebase/schema.ts` - Type definitions for database entities
+- `lib/site/siteService.ts` - Site data access methods
+- `lib/cache/siteCache.ts` - Domain resolution caching implementation
+
+## Caching Strategy
+
+### Domain Resolution Cache
+
+**Purpose:** Reduce Firestore reads for tenant resolution during HTTP requests
+
+**Implementation:** 
+```typescript
+// lib/cache/siteCache.ts
+import NodeCache from 'node-cache';
+import { TenantConfig } from '../firebase/schema';
+
+// Initialize cache with TTL (time-to-live) in seconds
+const domainCache = new NodeCache({
+  stdTTL: parseInt(process.env.DOMAIN_CACHE_TTL || '300', 10),
+  checkperiod: 60,
+});
+
+// Cache getter
+export function getCachedTenant(domain: string): TenantConfig | undefined {
+  return domainCache.get<TenantConfig>(domain);
+}
+
+// Cache setter
+export function cacheTenant(domain: string, tenant: TenantConfig): boolean {
+  return domainCache.set(domain, tenant);
+}
+
+// Cache invalidator
+export function invalidateTenantCache(domain?: string): void {
+  if (domain) {
+    domainCache.del(domain);
+  } else {
+    domainCache.flushAll();
+  }
+}
+
+// Cache statistics
+export function getCacheStats() {
+  return domainCache.getStats();
+}
+```
+
+**Cache Invalidation:**
+- Time-based (TTL) expiration for automatic refreshing
+- Manual invalidation endpoints for immediate updates
+- Cache flush capability for system-wide refreshes
+
+## Firestore Security Rules
+
+The following security rules enforce proper tenant isolation and access control:
+
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Site collection security rules
+    match /sites/{siteId} {
+      // Admin can read/write all sites
+      allow read, write: if request.auth != null && request.auth.token.admin == true;
+      
+      // Site owners can read their own site
+      allow read: if request.auth != null && 
+                  request.auth.token.tenantId == resource.data.tenantId;
+    }
+    
+    // Pages collection security rules
+    match /pages/{pageId} {
+      // Admin can read/write all pages
+      allow read, write: if request.auth != null && request.auth.token.admin == true;
+      
+      // Tenant users can only access their own pages
+      allow read: if request.auth != null && 
+                  request.auth.token.tenantId == resource.data.tenantId;
+      
+      // Tenant owners can write to their own pages
+      allow write: if request.auth != null && 
+                   request.auth.token.tenantId == resource.data.tenantId &&
+                   request.auth.token.owner == true;
+    }
+    
+    // Theme collection security rules
+    match /themes/{themeId} {
+      // Admin can read/write all themes
+      allow read, write: if request.auth != null && request.auth.token.admin == true;
+      
+      // Public themes can be read by any authenticated user
+      allow read: if request.auth != null && 
+                  resource.data.visibility == 'public';
+      
+      // Private themes can only be read by their owners
+      allow read: if request.auth != null && 
+                  resource.data.visibility == 'private' &&
+                  request.auth.token.tenantId == resource.data.ownerId;
+    }
+  }
+}
+```
+
+These rules ensure:
+- Strict tenant isolation for content
+- Administrative access for platform managers
+- Proper access controls for themes based on visibility
+- Owner-only write permissions for tenant content
 
 ## Data Validation
 

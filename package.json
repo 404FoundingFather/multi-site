@@ -1,0 +1,38 @@
+{
+  "name": "multi-site",
+  "version": "1.0.0",
+  "description": "A powerful and scalable solution for hosting multiple distinct websites from a single Next.js application, using Firebase Firestore for configuration and content management.",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "dev:mock-domain": "NEXT_PUBLIC_MOCK_DOMAIN=tenant1.example.com next dev"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/404FoundingFather/multi-site.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/404FoundingFather/multi-site/issues"
+  },
+  "homepage": "https://github.com/404FoundingFather/multi-site#readme",
+  "dependencies": {
+    "firebase": "^11.6.0",
+    "next": "^15.3.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@types/react": "19.1.1",
+    "typescript": "5.8.3"
+  }
+}

@@ -44,6 +44,7 @@ The tenant resolution middleware intercepts HTTP requests and extracts the domai
 * **Purpose**: Intercept and process HTTP requests for tenant resolution
 * **Implementation**: Next.js middleware function
 * **Key Components**: `middleware.ts` file implementing domain resolution
+* **Current Implementation**: Uses Next.js middleware API to extract hostnames from requests, resolve to tenant configurations, and inject tenant information into request headers for downstream use
 
 ## Code Organization
 
@@ -51,26 +52,36 @@ The tenant resolution middleware intercepts HTTP requests and extracts the domai
 ```
 [Project Root]
 ├── pages - Next.js pages
-│   ├── _app.js - Application entry with context providers
-│   ├── _document.js - Document customization
-│   ├── api - API routes
-│   └── [...catchAll].js - Dynamic page routing
+│   ├── _app.tsx - Application entry with context providers
+│   ├── index.tsx - Homepage
+│   ├── site-inactive.tsx - Error page for inactive sites
+│   └── site-not-found.tsx - Error page for unknown domains
 ├── middleware.ts - Tenant resolution middleware
 ├── components - Reusable React components
 │   ├── common - Shared components across all tenants
 │   ├── layouts - Layout components that adapt to tenant config
+│   │   └── MainLayout.tsx - Primary layout template
 │   └── themes - Theme-specific components
 ├── lib - Core functionality
 │   ├── cache - Caching implementations
+│   │   └── siteCache.ts - Domain-to-tenant cache implementation
 │   ├── firebase - Firebase/Firestore integration
+│   │   ├── firebase.ts - Firebase initialization
+│   │   └── schema.ts - Firestore data schema definitions
 │   ├── site - Site context and configuration
+│   │   ├── mockData.ts - Development data mocks
+│   │   └── siteService.ts - Site data access methods
 │   └── theme - Theming utilities
 ├── contexts - React context definitions
-│   ├── SiteContext.js - Tenant site context
-│   └── ThemeContext.js - Theming context
-├── utils - Helper functions and utilities
-├── public - Static assets
-└── styles - Global styles and CSS variables
+│   ├── SiteContext.tsx - Tenant site context
+│   └── ThemeContext.tsx - Theming context
+├── documents - Project documentation
+│   ├── longer-term-optimizations.md - Technical roadmap
+│   └── prd.md - Product Requirements Document
+├── memory-bank - Project knowledge base
+├── styles - Global styles and CSS variables
+│   └── globals.css - Application-wide styles
+└── next.config.js - Next.js configuration
 ```
 
 ### Module Responsibilities
@@ -99,6 +110,23 @@ The tenant resolution middleware intercepts HTTP requests and extracts the domai
 4. React components render with tenant-specific configuration and styling
 5. Tenant-specific theme is applied to the rendered HTML
 6. Response is sent to the client
+
+## Current Implementation Status
+
+As of April 11, 2025, the following components of the architecture have been implemented:
+
+1. **Project Structure** - Established the foundation with appropriate directories and configuration
+2. **Middleware Pattern** - Created the initial implementation of middleware.ts for domain-based tenant resolution
+3. **Context Definitions** - Set up SiteContext.tsx and ThemeContext.tsx for site configuration and theming
+4. **Core Utilities** - Implemented initial versions of site services and caching utilities
+5. **Error Handling** - Created error pages for site-not-found and site-inactive scenarios
+
+Next planned implementation steps include:
+1. Implementing the local caching for domain lookups
+2. Completing the SiteContext provider
+3. Creating the theme provider with CSS variables support
+
+See the Kanban board in `memory-bank/07-kanban.md` for the detailed task status and priorities.
 
 ## Error Handling Strategy
 * Graceful fallbacks for missing configurations
