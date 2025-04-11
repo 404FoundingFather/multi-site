@@ -28,30 +28,38 @@ The current architecture uses Next.js middleware for tenant resolution, which pr
 
 ### 1.2 Advanced Cache Invalidation Strategies
 
-**Current Approach:** Simple TTL-based caching  
-**Optimization:** Event-driven cache invalidation
+**Current Approach:** Simple timestamp-based in-memory caching with 5-minute TTL  
+**Optimization:** Implement event-driven cache invalidation
 
 **Details:**
-- Implement a webhook-triggered invalidation system when Firestore site configurations change
-- Options include:
-  - Firebase Functions to monitor the `sites` collection for updates
-  - Publish cache invalidation events to a message queue or pubsub system
-  - Create an admin API endpoint that can trigger selective cache invalidation
-- Cache invalidation events should be broadcast to all running instances
-
-**Implementation Example:**
-```typescript
-// In Firebase Functions
-export const onSiteUpdate = functions.firestore
-  .document('sites/{siteId}')
-  .onWrite(async (change, context) => {
-    const after = change.after.data();
-    if (after) {
-      // Call cache invalidation API on all instances or publish to message queue
-      await invalidateSiteCache(after.domainName);
+- The current implementation uses a custom in-memory cache with timestamp expiration:
+  ```typescript
+  // Current implementation in siteCache.ts
+  const siteCache: SiteCache = {};
+  const CACHE_EXPIRATION_MS = 5 * 60 * 1000; // 5 minutes
+  
+  export function getCachedSite(domainName: string): SiteConfig | null {
+    const cachedItem = siteCache[domainName];
+    if (!cachedItem) return null;
+    
+    // Check if cache has expired
+    const now = Date.now();
+    if (now - cachedItem.timestamp > CACHE_EXPIRATION_MS) {
+      delete siteCache[domainName];
+      return null;
     }
-  });
-```
+    return cachedItem.site;
+  }
+  ```
+
+- Enhance this with a distributed caching solution:
+  - Replace in-memory cache with Redis or Memcached for multi-instance support
+  - Implement a webhook-triggered invalidation system when Firestore site configurations change
+  - Options include:
+    - Firebase Functions to monitor the `sites` collection for updates
+    - Publish cache invalidation events to a message queue or pubsub system
+    - Create an admin API endpoint that can trigger selective cache invalidation
+  - Cache invalidation events should be broadcast to all running instances
 
 ## 2. Serverless Function Optimization
 
@@ -709,6 +717,269 @@ app.use((req, res, next) => {
 - API response times by tenant and endpoint
 - Error rates by tenant
 - Cache hit rates by tenant
+
+## 10. Site Status Management Enhancements
+
+The current implementation has basic handling for site statuses (`active`, `inactive`, and `maintenance`), but this area can be enhanced for more sophisticated site lifecycle management:
+
+### 10.1 Advanced Maintenance Mode System
+
+**Current Approach:** Simple redirect to maintenance page  
+**Optimization:** Create a comprehensive maintenance mode system
+
+**Details:**
+- Implement a more sophisticated maintenance mode system:
+  - Scheduled maintenance windows with automatic activation/deactivation
+  - Role-based bypass for administrators and developers
+  - Custom maintenance pages per tenant with estimated downtime
+  - API endpoints that remain accessible during maintenance
+- Create a maintenance mode dashboard:
+  - Status overview of all tenant maintenance states
+  - Maintenance schedule calendar
+  - Audit log of maintenance mode activations
+
+**Example Implementation:**
+```typescript
+// Enhanced maintenance mode check with role-based bypass
+export function maintenanceMiddleware(req, res, next) {
+  const tenantId = req.headers['x-tenant-id'];
+  const siteStatus = req.headers['x-site-status'];
+  
+  // Check if site is in maintenance mode
+  if (siteStatus === 'maintenance') {
+    // Allow admins to bypass maintenance mode
+    const isAdmin = req.headers['x-user-role'] === 'admin';
+    const bypassRequested = req.cookies['maintenance-bypass-token'];
+    
+    // Allow API health endpoints to function during maintenance
+    const isHealthEndpoint = req.path.startsWith('/api/health');
+    
+    if (isAdmin || bypassRequested || isHealthEndpoint) {
+      // Add maintenance mode banner but allow access
+      req.inMaintenance = true;
+      return next();
+    }
+    
+    // Get tenant-specific maintenance page if available
+    const maintenancePage = `/maintenance?tenant=${tenantId}`;
+    return res.redirect(maintenancePage);
+  }
+  
+  next();
+}
+```
+
+### 10.2 Enhanced Status Transitions
+
+**Issue:** Status changes may require complex workflows  
+**Optimization:** Implement status state machine with validations
+
+**Details:**
+- Create a formalized state transition system:
+  - Define allowed status transitions (e.g., active → maintenance → active)
+  - Implement pre-transition validation checks
+  - Add post-transition hooks for notifications or system adjustments
+- Add status-specific capabilities:
+  - Preview mode for pre-launch sites
+  - Archived state for deprecated sites
+  - Scheduled status changes for future activation
+  - Emergency mode with degraded functionality but critical services
+
+**Example State Machine:**
+```typescript
+// Site status state machine
+const ALLOWED_TRANSITIONS = {
+  'draft': ['active', 'preview'],
+  'preview': ['active', 'draft', 'inactive'],
+  'active': ['maintenance', 'inactive'],
+  'maintenance': ['active', 'inactive'],
+  'inactive': ['active', 'archived'],
+  'archived': ['inactive']
+};
+
+async function changeSiteStatus(tenantId, newStatus, options = {}) {
+  const site = await getSiteByTenantId(tenantId);
+  const currentStatus = site.status;
+  
+  // Validate transition is allowed
+  if (!ALLOWED_TRANSITIONS[currentStatus].includes(newStatus)) {
+    throw new Error(`Cannot transition from ${currentStatus} to ${newStatus}`);
+  }
+  
+  // Perform pre-transition validations
+  await validateStatusTransition(site, currentStatus, newStatus);
+  
+  // Update status
+  await updateSiteStatus(tenantId, newStatus);
+  
+  // Perform post-transition actions
+  await performPostTransitionHooks(site, currentStatus, newStatus, options);
+  
+  return { success: true, previousStatus: currentStatus, newStatus };
+}
+```
+
+## 11. Client-Side Tenant Awareness Enhancements
+
+The current implementation uses cookies to make tenant information available to client-side code. This approach can be enhanced for better security and performance:
+
+### 11.1 Enhanced Client-Side Tenant Context
+
+**Current Approach:** Simple cookie-based tenant ID storage  
+**Optimization:** Implement a more robust client-side tenant context system
+
+**Details:**
+- The current implementation sets a cookie in middleware:
+  ```typescript
+  // Current implementation in middleware.ts
+  response.cookies.set('x-tenant-id', site.tenantId, { 
+    path: '/',
+    sameSite: 'strict',
+    httpOnly: false // Allow JS access for client-side tenant awareness
+  });
+  ```
+
+- Enhance this with a more comprehensive approach:
+  - Use HTTP-only cookies for sensitive tenant data
+  - Implement a secure tenant context object with limited exposed properties
+  - Create a client-side SDK for tenant-aware operations
+  - Implement proper validation of tenant context on both client and server
+
+**Example Enhanced Implementation:**
+```typescript
+// Server-side: Set multiple cookies with different security settings
+export function setTenantCookies(res, tenant) {
+  // Sensitive data in HTTP-only cookie (not accessible to JavaScript)
+  res.cookies.set('x-tenant-auth', tenant.authToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict'
+  });
+  
+  // Public tenant data in JS-accessible cookie
+  res.cookies.set('x-tenant-public', JSON.stringify({
+    tenantId: tenant.tenantId,
+    siteName: tenant.siteName,
+    themeId: tenant.themeId
+  }), {
+    httpOnly: false,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict'
+  });
+}
+
+// Client-side: Tenant context hook with validation
+export function useTenantContext() {
+  const [tenantContext, setTenantContext] = useState(null);
+  
+  useEffect(() => {
+    // Get and validate tenant data from cookie
+    try {
+      const cookieValue = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('x-tenant-public='))
+        ?.split('=')[1];
+        
+      if (cookieValue) {
+        const parsedValue = JSON.parse(decodeURIComponent(cookieValue));
+        // Validate required fields
+        if (parsedValue && parsedValue.tenantId && parsedValue.siteName) {
+          setTenantContext(parsedValue);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to parse tenant context from cookie:', error);
+    }
+  }, []);
+  
+  return tenantContext;
+}
+```
+
+### 11.2 Tenant-Aware Client SDK
+
+**Issue:** Client-side code needs consistent access to tenant context  
+**Optimization:** Create a comprehensive client SDK
+
+**Details:**
+- Develop a tenant-aware client SDK:
+  - Automatic inclusion of tenant context in all API requests
+  - Tenant-specific endpoint selection
+  - Client-side caching with tenant isolation
+  - Type-safe tenant context access
+
+**Example SDK Implementation:**
+```typescript
+// Tenant-aware API client
+export class TenantApiClient {
+  private tenantId: string;
+  private baseUrl: string;
+  private cache: Map<string, {data: any, timestamp: number}>;
+  private cacheTimeout: number;
+  
+  constructor(tenantId: string, options = {}) {
+    this.tenantId = tenantId;
+    this.baseUrl = options.baseUrl || '/api';
+    this.cache = new Map();
+    this.cacheTimeout = options.cacheTimeout || 60000; // 1 minute
+  }
+  
+  async fetch(endpoint: string, options = {}) {
+    const url = `${this.baseUrl}${endpoint}`;
+    const cacheKey = `${url}-${JSON.stringify(options)}`;
+    
+    // Check cache first
+    const cached = this.cache.get(cacheKey);
+    if (cached && (Date.now() - cached.timestamp < this.cacheTimeout)) {
+      return cached.data;
+    }
+    
+    // Add tenant ID to headers
+    const headers = {
+      ...options.headers,
+      'x-tenant-id': this.tenantId
+    };
+    
+    // Make the request
+    const response = await fetch(url, {
+      ...options,
+      headers
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    // Cache the response
+    this.cache.set(cacheKey, {
+      data,
+      timestamp: Date.now()
+    });
+    
+    return data;
+  }
+  
+  // Convenience methods for common operations
+  async getPage(slug: string) {
+    return this.fetch(`/pages/${slug}`);
+  }
+  
+  async getNavigation() {
+    return this.fetch(`/navigation`);
+  }
+  
+  // Cache management
+  clearCache() {
+    this.cache.clear();
+  }
+}
+
+// Usage
+const api = new TenantApiClient(tenantContext.tenantId);
+const pageData = await api.getPage('about');
+```
 
 ## Final Recommendations and Implementation Strategy
 

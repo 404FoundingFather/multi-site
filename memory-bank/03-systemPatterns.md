@@ -23,7 +23,10 @@ The tenant resolution middleware intercepts HTTP requests and extracts the domai
 ### Context Provider Pattern
 * **Purpose**: Share tenant configuration throughout the application
 * **Implementation**: React Context API with a provider at the application root
-* **Key Components**: `SiteContextProvider`, `useSiteContext` hook
+* **Key Components**: `SiteProvider`, `useSite` hook, `ThemeProvider`, `useTheme` hook
+* **Current Implementation**: 
+  * `SiteContext`: Provides site configuration with `site`, `isLoading`, and `error` properties. Retrieves tenant ID from cookies on client-side and falls back to mock data in development.
+  * `ThemeContext`: Loads theme based on site's themeId, applies CSS variables to document root, and provides theme data to components. Includes cleanup on unmount.
 
 ### Repository Pattern
 * **Purpose**: Abstract data access logic and enforce tenant data isolation
@@ -110,6 +113,77 @@ The tenant resolution middleware intercepts HTTP requests and extracts the domai
 4. React components render with tenant-specific configuration and styling
 5. Tenant-specific theme is applied to the rendered HTML
 6. Response is sent to the client
+
+## Layout Application and Page Rendering
+
+The `MainLayout` component serves as the primary layout template for all pages. It:
+
+1. Consumes both the SiteContext and ThemeContext to access tenant-specific information
+2. Handles loading states while site and theme data are being fetched
+3. Renders the appropriate header with site logo or name
+4. Provides consistent navigation structure with tenant-specific styling
+5. Renders page content within a main container
+6. Includes a footer with site information and contact details
+7. Sets appropriate meta tags in the document head
+
+```typescript
+// Current implementation (simplified)
+const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
+  const { site, isLoading: siteLoading } = useSite();
+  const { theme, isLoading: themeLoading } = useTheme();
+  
+  const siteName = site?.siteName || 'Website';
+  const pageTitle = title ? `${title} | ${siteName}` : siteName;
+  
+  if (siteLoading || themeLoading) {
+    return <div>Loading site configuration...</div>;
+  }
+  
+  return (
+    <>
+      <Head>
+        <title>{pageTitle}</title>
+        {/* Meta tags */}
+      </Head>
+      
+      <div className="site-wrapper">
+        <header>
+          {/* Site logo/name and navigation */}
+        </header>
+        
+        <main>{children}</main>
+        
+        <footer>
+          {/* Site footer with contact info */}
+        </footer>
+      </div>
+    </>
+  );
+};
+```
+
+### Application Entry (_app.tsx)
+
+The Next.js application entry point wraps all pages with the necessary context providers:
+
+```typescript
+// Current implementation (simplified)
+function MyApp({ Component, pageProps }: AppProps) {
+  return (
+    <SiteProvider>
+      <ThemeProvider>
+        <Component {...pageProps} />
+      </ThemeProvider>
+    </SiteProvider>
+  );
+}
+```
+
+This setup ensures that:
+1. Every page has access to the site configuration via `useSite()` hook
+2. Every page has access to theme data via `useTheme()` hook
+3. CSS variables from the theme are applied globally
+4. Pages are responsible for using their own layout components
 
 ## Current Implementation Status
 

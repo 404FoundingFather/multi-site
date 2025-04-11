@@ -122,34 +122,27 @@ export const config = {
 
 ## 3. Tenant Resolution & Caching
 
-The middleware calls the `resolveTenantFromDomain` function, which performs the following steps:
+The middleware uses the site resolution process, which performs the following steps:
 
 ```typescript
 // lib/site/siteService.ts (simplified)
-export async function resolveTenantFromDomain(domain: string): Promise<TenantConfig | null> {
+export async function getSiteByDomain(domain: string): Promise<SiteConfig | null> {
   // Check cache first for performance
-  const cachedTenant = getCachedTenant(domain);
-  if (cachedTenant) {
-    return cachedTenant;
+  const cachedSite = getCachedSite(domain);
+  if (cachedSite) {
+    console.log(`[SiteService] Cache hit for domain: ${domain}`);
+    return cachedSite;
   }
 
-  // If not in cache, query Firestore
-  const db = getFirestore();
-  const sitesRef = collection(db, 'sites');
-  const q = query(sitesRef, where('domainName', '==', domain));
+  console.log(`[SiteService] Cache miss for domain: ${domain}, fetching data`);
   
-  const snapshot = await getDocs(q);
+  // If not in cache, query Firestore (or use mock data in development)
+  // ...database query logic...
   
-  if (snapshot.empty) {
-    return null;
-  }
+  // Store in cache for future requests
+  cacheSite(domain, site);
   
-  const tenantData = snapshot.docs[0].data() as TenantConfig;
-  
-  // Cache for future requests (TTL defined in cache implementation)
-  cacheTenant(domain, tenantData);
-  
-  return tenantData;
+  return site;
 }
 ```
 
@@ -159,24 +152,41 @@ Key aspects of this process:
 2. **Database Query**: If not in cache, we query Firestore for the tenant configuration
 3. **Cache Storage**: Store the result in cache for subsequent requests
 4. **Error Handling**: Return appropriate responses for missing or inactive tenants
+5. **Development Mode**: Uses mock data when configured for development environments
 
-The cache implementation in `lib/cache/siteCache.ts` uses NodeCache with configurable TTL:
+The cache implementation in `lib/cache/siteCache.ts` uses a custom in-memory solution with timestamp-based expiration:
 
 ```typescript
 // lib/cache/siteCache.ts (simplified)
-import NodeCache from 'node-cache';
+// In-memory cache for sites
+const siteCache: SiteCache = {};
 
-const domainCache = new NodeCache({
-  stdTTL: parseInt(process.env.DOMAIN_CACHE_TTL || '300', 10), // 5 minutes default
-  checkperiod: 60,
-});
+// Cache expiration time (in milliseconds)
+const CACHE_EXPIRATION_MS = 5 * 60 * 1000; // 5 minutes
 
-export function getCachedTenant(domain: string): TenantConfig | undefined {
-  return domainCache.get<TenantConfig>(domain);
+export function getCachedSite(domainName: string): SiteConfig | null {
+  const cachedItem = siteCache[domainName];
+  
+  if (!cachedItem) {
+    return null;
+  }
+  
+  // Check if cache has expired
+  const now = Date.now();
+  if (now - cachedItem.timestamp > CACHE_EXPIRATION_MS) {
+    // Remove expired cache entry
+    delete siteCache[domainName];
+    return null;
+  }
+  
+  return cachedItem.site;
 }
 
-export function cacheTenant(domain: string, tenant: TenantConfig): boolean {
-  return domainCache.set(domain, tenant);
+export function cacheSite(domainName: string, site: SiteConfig): void {
+  siteCache[domainName] = {
+    site,
+    timestamp: Date.now(),
+  };
 }
 ```
 
@@ -213,47 +223,64 @@ When a page renders, it's wrapped by the application shell in `_app.tsx`:
 
 ```typescript
 // pages/_app.tsx (simplified)
-function MyApp({ Component, pageProps }) {
+function MyApp({ Component, pageProps }: AppProps) {
   return (
-    <SiteContextProvider pageProps={pageProps}>
+    <SiteProvider>
       <ThemeProvider>
-        <MainLayout>
-          <Component {...pageProps} />
-        </MainLayout>
+        <Component {...pageProps} />
       </ThemeProvider>
-    </SiteContextProvider>
+    </SiteProvider>
   );
 }
 ```
 
-The `SiteContextProvider` initializes with the tenant information:
+The `SiteProvider` initializes with the tenant information:
 
 ```typescript
 // contexts/SiteContext.tsx (simplified)
-export const SiteContextProvider = ({ children, pageProps }) => {
-  const [site, setSite] = useState<TenantConfig | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  
+export const SiteProvider: React.FC<SiteProviderProps> = ({ children, initialSiteData = null }) => {
+  const [site, setSite] = useState<SiteConfig | null>(initialSiteData);
+  const [isLoading, setIsLoading] = useState<boolean>(!initialSiteData);
+  const [error, setError] = useState<Error | null>(null);
+
   useEffect(() => {
-    if (pageProps.tenantId) {
-      // Load site configuration (possibly from cache)
-      const loadSite = async () => {
-        try {
-          const siteData = await getSiteById(pageProps.tenantId);
-          setSite(siteData);
-        } catch (error) {
-          console.error('Error loading site:', error);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      
-      loadSite();
+    // If we already have initial data, we don't need to fetch it
+    if (initialSiteData) {
+      return;
     }
-  }, [pageProps.tenantId]);
-  
+
+    const fetchSiteData = async () => {
+      try {
+        setIsLoading(true);
+        // Get the tenant ID from the headers set by our middleware
+        const tenantId = 
+          // Server-side: Get from request headers
+          typeof window === 'undefined' 
+            ? 'default-tenant' // Default for SSR when header not available
+            // Client-side: Check a cookie or use a default for development
+            : document.cookie.split('; ').find(row => row.startsWith('x-tenant-id='))
+              ?.split('=')[1] || 'default-tenant';
+        
+        if (tenantId && tenantId !== 'unknown' && tenantId !== 'error') {
+          const siteData = await getSiteByTenantId(tenantId);
+          setSite(siteData);
+        } else {
+          // For development purposes, fall back to mock data
+          console.warn('No valid tenant ID found, using mock data');
+          // Set fallback site data
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error('Failed to load site data'));
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchSiteData();
+  }, [initialSiteData]);
+
   return (
-    <SiteContext.Provider value={{ site, isLoading }}>
+    <SiteContext.Provider value={{ site, isLoading, error }}>
       {children}
     </SiteContext.Provider>
   );
@@ -266,45 +293,77 @@ The `ThemeProvider` loads the theme based on the site configuration and applies 
 
 ```typescript
 // contexts/ThemeContext.tsx (simplified)
-export const ThemeProvider = ({ children }) => {
-  const [theme, setTheme] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const { site } = useSiteContext();
-  
+export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children, initialThemeData = null }) => {
+  const { site } = useSite();
+  const [theme, setTheme] = useState<ThemeConfig | null>(initialThemeData);
+  const [isLoading, setIsLoading] = useState<boolean>(!initialThemeData);
+  const [error, setError] = useState<Error | null>(null);
+
   useEffect(() => {
-    if (site?.themeId) {
-      const loadTheme = async () => {
-        try {
-          const themeData = await getThemeById(site.themeId);
-          setTheme(themeData);
-        } catch (error) {
-          console.error('Error loading theme:', error);
-        } finally {
-          setIsLoading(false);
+    // If we already have initial data or we don't have a site yet, we don't need to fetch theme data
+    if (initialThemeData || !site) {
+      return;
+    }
+
+    const fetchThemeData = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Use mock data in development mode
+        if (USE_MOCK_DATA) {
+          console.log('[ThemeContext] Using mock theme data');
+          const mockTheme = mockThemes[site.themeId] || mockThemes['default-theme'];
+          
+          if (mockTheme) {
+            setTheme(mockTheme);
+            return;
+          }
         }
-      };
-      
-      loadTheme();
-    }
-  }, [site?.themeId]);
-  
-  // Apply CSS variables from theme
+        
+        // In a real implementation, we would fetch theme data from Firestore based on site.themeId
+        // For now, we use a fallback theme
+        const fallbackTheme: ThemeConfig = {
+          name: 'Default Theme',
+          styles: {
+            primaryColor: '#3f51b5',
+            secondaryColor: '#f50057',
+            backgroundColor: '#ffffff',
+            textColor: '#333333',
+            fontFamily: "'Roboto', sans-serif",
+          },
+        };
+
+        setTheme(fallbackTheme);
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error('Failed to load theme data'));
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchThemeData();
+  }, [site, initialThemeData]);
+
+  // Apply the theme styles to the document
   useEffect(() => {
-    if (theme?.styles) {
-      Object.entries(theme.styles).forEach(([key, value]) => {
-        document.documentElement.style.setProperty(`--${key}`, value as string);
+    if (!theme) return;
+
+    // Apply CSS variables to :root
+    const root = document.documentElement;
+    Object.entries(theme.styles).forEach(([key, value]) => {
+      root.style.setProperty(`--${key}`, value);
+    });
+
+    return () => {
+      // Clean up CSS variables when component unmounts
+      Object.keys(theme.styles).forEach((key) => {
+        root.style.removeProperty(`--${key}`);
       });
-    }
-    
-    // Apply any theme-specific fonts
-    if (theme?.fonts?.length) {
-      // Load fonts dynamically
-      // ...
-    }
+    };
   }, [theme]);
-  
+
   return (
-    <ThemeContext.Provider value={{ theme, isLoading }}>
+    <ThemeContext.Provider value={{ theme, isLoading, error }}>
       {children}
     </ThemeContext.Provider>
   );
@@ -347,32 +406,61 @@ This approach provides several benefits:
 
 ## 8. Layout Application and Page Rendering
 
-The `MainLayout` component applies the site structure and incorporates tenant information:
+The `MainLayout` component serves as the primary layout template for pages that use it. Pages are responsible for importing and using the MainLayout component as needed:
 
 ```typescript
 // components/layouts/MainLayout.tsx (simplified)
-const MainLayout = ({ children }) => {
-  const { site, isLoading } = useSiteContext();
+const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
+  const { site, isLoading: siteLoading } = useSite();
+  const { theme, isLoading: themeLoading } = useTheme();
   
-  if (isLoading) {
-    return <LoadingSpinner />;
+  const siteName = site?.siteName || 'Website';
+  const pageTitle = title ? `${title} | ${siteName}` : siteName;
+  
+  if (siteLoading || themeLoading) {
+    return <div>Loading site configuration...</div>;
   }
   
   return (
     <>
-      <Header 
-        siteName={site?.siteName} 
-        logoUrl={site?.config?.logoUrl} 
-      />
+      <Head>
+        <title>{pageTitle}</title>
+        <meta name="description" content={`${siteName} - Multi-tenant website`} />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="icon" href="/favicon.ico" />
+      </Head>
       
-      <main className="site-content">
-        {children}
-      </main>
-      
-      <Footer 
-        siteName={site?.siteName} 
-        contactInfo={site?.config?.contactInfo} 
-      />
+      <div className="site-wrapper">
+        <header>
+          <div className="header-content">
+            <div className="logo">
+              {site?.config?.logo ? (
+                <img src={site.config.logo} alt={siteName} />
+              ) : (
+                <h1>{siteName}</h1>
+              )}
+            </div>
+            <nav>
+              <ul>
+                <li><a href="/">Home</a></li>
+                <li><a href="/about">About</a></li>
+                <li><a href="/contact">Contact</a></li>
+              </ul>
+            </nav>
+          </div>
+        </header>
+        
+        <main>{children}</main>
+        
+        <footer>
+          <div className="footer-content">
+            <p>&copy; {new Date().getFullYear()} {siteName}</p>
+            {site?.config?.contactEmail && (
+              <p>Contact: <a href={`mailto:${site.config.contactEmail}`}>{site.config.contactEmail}</a></p>
+            )}
+          </div>
+        </footer>
+      </div>
     </>
   );
 };
@@ -392,13 +480,18 @@ is sent back to the user's browser.
 
 During the request flow, several error paths are handled:
 
-1. **Domain Not Found**: If the domain doesn't match any tenant, the user is redirected to `/site-not-found`
+1. **Domain Not Found**: 
+   - If the domain doesn't match any tenant, the x-tenant-id header is set to "unknown"
+   - In production, the user is redirected to `/site-not-found`
+   - In development, the request continues to make testing easier
 
 2. **Inactive Site**: If the tenant exists but is marked inactive, the user is redirected to `/site-inactive`
 
-3. **Server Errors**: If database queries fail or other errors occur, the user is redirected to a server error page
+3. **Maintenance Mode**: If the site is in maintenance mode and the user isn't already on the maintenance page, they are redirected to `/maintenance`
 
-4. **Loading States**: While tenant configuration and theme are loading, appropriate loading indicators are shown
+4. **Server Errors**: If errors occur during tenant resolution, the x-tenant-id header is set to "error" and the request continues
+
+5. **Loading States**: While site configuration and theme data are being fetched, the MainLayout displays a loading indicator
 
 ## Performance Considerations
 

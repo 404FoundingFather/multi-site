@@ -171,13 +171,20 @@ async function getSiteByDomain(domain: string): Promise<TenantConfig | null> {
 
 ## Data Access Layer
 
-**ORM/Data Access Framework:** Custom repositories with Firestore Admin SDK
+**ORM/Data Access Framework:** Custom repositories with Firebase SDK
 
 **Key Files/Modules:**
 - `lib/firebase/firebase.ts` - Firestore client initialization
 - `lib/firebase/schema.ts` - Type definitions for database entities
-- `lib/site/siteService.ts` - Site data access methods
+- `lib/site/siteService.ts` - Site data access methods with both `getSiteByDomain` and `getSiteByTenantId` functions
 - `lib/cache/siteCache.ts` - Domain resolution caching implementation
+- `lib/site/mockData.ts` - Mock data for development environments
+
+**Current Implementation:**
+- Service methods include direct caching integration
+- Development mode detection with mock data fallbacks
+- Error handling with descriptive logs
+- Type safety with TypeScript interfaces
 
 ## Caching Strategy
 
