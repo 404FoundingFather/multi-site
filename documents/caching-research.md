@@ -1,7 +1,6 @@
 # Caching Strategy Research
 
 **Last Updated:** April 11, 2025  
-**Author:** Michael  
 **Status:** In Progress
 
 ## Executive Summary

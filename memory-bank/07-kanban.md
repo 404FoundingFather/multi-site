@@ -26,9 +26,9 @@ This document tracks the current status of development tasks using a rolling dev
 - [P3] Implement performance optimization for static assets
 
 ## In Progress
-- [P2] Research optimal caching strategy for domain resolution - Michael - May 1, 2025
-- [P1] Complete base components with tenant-aware styling - Sarah - April 15, 2025
-- [P1] Create repository pattern for tenant-isolated data access - David - April 18, 2025
+- [P2] Research optimal caching strategy for domain resolution
+- [P1] Complete base components with tenant-aware styling
+- [P1] Create repository pattern for tenant-isolated data access
 
 ## Under Review
 - None yet

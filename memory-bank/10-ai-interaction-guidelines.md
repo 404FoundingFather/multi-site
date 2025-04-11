@@ -11,6 +11,7 @@ This document outlines guidelines for working with AI assistants on this project
 - Technical depth appropriate for experienced Next.js and Firebase developers
 - Semi-formal communication style with focus on technical accuracy
 - Include brief explanations with code to highlight the "why" behind implementation choices
+- Do not add fictitious people to the documents in this project. 
 
 ### Context Sharing
 - Always include the specific tenant-related context when asking about code
