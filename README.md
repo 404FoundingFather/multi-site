@@ -59,8 +59,8 @@ Request Flow:
 
 1. Clone this repository:
    ```bash
-   git clone https://your-repo-url/multi-tenant-website-engine.git
-   cd multi-tenant-website-engine
+   git clone https://github.com/404FoundingFather/multi-site.git
+   cd multi-site
    ```
 
 2. Install dependencies:
