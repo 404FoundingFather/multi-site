@@ -26,9 +26,8 @@ This document tracks the current status of development tasks using a rolling dev
 - [P3] Implement performance optimization for static assets
 
 ## In Progress
-- [P2] Research optimal caching strategy for domain resolution
-- [P1] Complete base components with tenant-aware styling
-- [P1] Create repository pattern for tenant-isolated data access
+- [P1] Complete base components with tenant-aware styling - Eric
+- [P1] Create repository pattern for tenant-isolated data access - Eric
 
 ## Under Review
 - None yet
@@ -45,6 +44,7 @@ This document tracks the current status of development tasks using a rolling dev
 - ✅ Implement local caching for domain lookups - April 11, 2025
 - ✅ Design and implement SiteContext provider - April 11, 2025
 - ✅ Create theme provider with CSS variables support - April 11, 2025
+- ✅ Research optimal caching strategy for domain resolution - April 11, 2025
 
 ## Blocked/Issues
 - ⚠️ Tenant isolation security verification
