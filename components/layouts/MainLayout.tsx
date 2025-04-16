@@ -1,7 +1,10 @@
 import React, { ReactNode } from 'react';
 import Head from 'next/head';
+import Link from 'next/link';
 import { useSite } from '../../contexts/SiteContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import Container from '../common/Container';
+import Navigation from '../common/Navigation';
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -19,6 +22,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
     return <div>Loading site configuration...</div>;
   }
   
+  const navItems = [
+    { label: 'Home', href: '/' },
+    { label: 'About', href: '/about' },
+    { label: 'Contact', href: '/contact' }
+  ];
+  
   return (
     <>
       <Head>
@@ -30,33 +39,39 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
       
       <div className="site-wrapper">
         <header>
-          <div className="header-content">
-            <div className="logo">
-              {site?.config?.logo ? (
-                <img src={site.config.logo} alt={siteName} />
-              ) : (
-                <h1>{siteName}</h1>
-              )}
+          <Container>
+            <div className="header-content">
+              <div className="logo">
+                {site?.config?.logo ? (
+                  <Link href="/">
+                    <img src={site.config.logo} alt={siteName} />
+                  </Link>
+                ) : (
+                  <Link href="/">
+                    <h1>{siteName}</h1>
+                  </Link>
+                )}
+              </div>
+              <Navigation items={navItems} />
             </div>
-            <nav>
-              <ul>
-                <li><a href="/">Home</a></li>
-                <li><a href="/about">About</a></li>
-                <li><a href="/contact">Contact</a></li>
-              </ul>
-            </nav>
-          </div>
+          </Container>
         </header>
         
-        <main>{children}</main>
+        <main>
+          <Container>
+            {children}
+          </Container>
+        </main>
         
         <footer>
-          <div className="footer-content">
-            <p>&copy; {new Date().getFullYear()} {siteName}</p>
-            {site?.config?.contactEmail && (
-              <p>Contact: <a href={`mailto:${site.config.contactEmail}`}>{site.config.contactEmail}</a></p>
-            )}
-          </div>
+          <Container>
+            <div className="footer-content">
+              <p>&copy; {new Date().getFullYear()} {siteName}</p>
+              {site?.config?.contactEmail && (
+                <p>Contact: <a href={`mailto:${site.config.contactEmail}`}>{site.config.contactEmail}</a></p>
+              )}
+            </div>
+          </Container>
         </footer>
       </div>
     </>

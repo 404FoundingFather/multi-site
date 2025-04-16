@@ -1,6 +1,6 @@
 # UI Design
 
-**Last Updated:** April 11, 2025
+**Last Updated:** April 16, 2025
 
 This document outlines the user interface design principles, components, and layouts for the project.
 
@@ -21,13 +21,13 @@ This document outlines the user interface design principles, components, and lay
 
 ## Implementation Status
 
-The following components and layouts have been implemented in the initial project setup:
+The following components and layouts have been implemented in the project:
 
 ### Core Layout Implementation
-- **MainLayout Component** - Base layout wrapper (`components/layouts/MainLayout.tsx`)
-- **Global Styles** - CSS variables and base styling (`styles/globals.css`)
+- **MainLayout Component** - Base layout wrapper (`components/layouts/MainLayout.tsx`) - Updated to use common components
+- **Global Styles** - CSS variables and base styling (`styles/globals.css`) - Enhanced with additional variables for component styling
 - **Page Templates** - Basic page structures for:
-  - Homepage (`pages/index.tsx`)
+  - Homepage (`pages/index.tsx`) - Updated to showcase tenant-aware components
   - About page (`pages/about.tsx`)
   - Contact page (`pages/contact.tsx`)
   - Error pages (`pages/site-inactive.tsx`, `pages/site-not-found.tsx`)
@@ -38,6 +38,54 @@ The following components and layouts have been implemented in the initial projec
   - `contexts/SiteContext.tsx` - Provides site-specific configuration
 - **Theme Variables** - CSS variables approach for dynamic theming
 - **_app.tsx** - Application wrapper with provider initialization
+
+### Common Component Library Implementation (April 16, 2025)
+A comprehensive set of base components has been implemented with tenant-aware styling:
+
+- **Button Component** (`components/common/Button.tsx`)
+  - Multiple variants: primary, secondary, outline, text
+  - Size options: small, medium, large
+  - Polymorphic capabilities through "as" prop
+  - Full TypeScript support with ref forwarding
+
+- **Card Component** (`components/common/Card.tsx`)
+  - Variants: default, outlined, elevated
+  - Optional header and footer sections
+  - Configurable padding
+
+- **Input Component** (`components/common/Input.tsx`)
+  - Label, error, and help text support
+  - Accessible implementation with ARIA attributes
+  - Stable ID generation with React useId hook
+  - Support for both controlled and uncontrolled usage
+
+- **Alert Component** (`components/common/Alert.tsx`)
+  - Multiple variants: info, success, warning, error
+  - Dismissible option with animation
+  - Title support for more detailed messages
+
+- **Navigation Component** (`components/common/Navigation.tsx`)
+  - Horizontal and vertical orientation options
+  - Support for external links
+  - Configurable ARIA labeling for accessibility
+
+- **Hero Component** (`components/common/Hero.tsx`)
+  - Configurable background image with fallback handling
+  - Support for call-to-action buttons
+  - Multiple alignment options: left, center, right
+
+- **Container Component** (`components/common/Container.tsx`)
+  - Multiple width options: xs, sm, md, lg, xl, full
+  - Centering and padding configuration
+  - Consistent layout management
+
+All components:
+- Follow consistent naming and structure patterns
+- Use CSS variables for tenant-aware styling
+- Include proper TypeScript typing and JSDoc documentation
+- Implement React best practices including ref forwarding
+- Provide accessibility features
+- Support composition with other components
 
 ### Sample Implementation: MainLayout
 
