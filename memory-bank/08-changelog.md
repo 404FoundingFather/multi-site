@@ -1,12 +1,22 @@
 # Changelog
 
-**Last Updated:** April 11, 2025
+**Last Updated:** April 30, 2025
 
 This document tracks significant changes to the project in chronological order, with the most recent entries at the top.
 
 ## [Unreleased]
 
 ### Added
+- Development domain configuration for localhost:3000
+  - Default site configuration for local development
+  - Seamless fallback behavior in development mode
+  - Improved developer experience with consistent local setup
+- Repository pattern implementation for tenant-isolated data access
+  - BaseRepository class with common CRUD operations
+  - TenantContext singleton for tenant ID management
+  - Specialized repositories for Page, Theme, and Site entities
+  - Example component using the repository pattern
+  - Comprehensive documentation and usage guidelines
 - Initial Next.js project structure implementation with key directories:
   - components/ (with common, layouts, themes subdirectories)
   - contexts/ (SiteContext.tsx, ThemeContext.tsx)
@@ -20,13 +30,27 @@ This document tracks significant changes to the project in chronological order, 
 - Technology stack decisions (Next.js, Firestore)
 
 ### Changed
+- Enhanced error handling in middleware for development mode
+- Simplified site context fallback behavior
+- Updated middleware.ts to use the repository pattern
+- Enhanced SiteContext to leverage the repository pattern
 - Relocated PRD to new documents/ directory structure
 - Initial project scope refined to focus on core multi-tenancy features
 
 ### Fixed
-- None
+- Added consistent handling of localhost:3000 in development mode
+- Improved graceful fallbacks when tenant resolution fails
 
 ## Project Milestones
+
+### Development Environment Enhancement - April 30, 2025
+- Added default domain configuration for local development
+- Streamlined developer setup process 
+
+### Repository Pattern Implementation - April 30, 2025
+- Implemented tenant-isolated data access
+- Enhanced security and data isolation
+- Improved code organization and maintainability
 
 ### Project Inception - April 5, 2025
 - Initial project concept defined

@@ -154,6 +154,7 @@ All code generated or suggested by AI assistants MUST adhere to Clean Code princ
 ## Memory Bank Updates
 
 ### Recommended Update Frequency
+- Add appropriate context and details to 14-feature-notes.md for each new feature.  The goal is to capture the thought process of deriving the solution.
 - Update after completing significant tenant-related features
 - Review after any changes to the tenant resolution flow
 - Add new code patterns when discovered during implementation

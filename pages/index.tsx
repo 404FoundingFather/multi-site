@@ -7,6 +7,7 @@ import Button from '../components/common/Button';
 import Alert from '../components/common/Alert';
 import Container from '../components/common/Container';
 import Input from '../components/common/Input';
+import Navigation from '../components/common/Navigation';
 
 const HomePage = () => {
   const { site } = useSite();
@@ -24,6 +25,14 @@ const HomePage = () => {
     // In a real app, you would handle the form submission here
   };
 
+  // Navigation items for demo purposes
+  const navItems = [
+    { label: 'Home', href: '/' },
+    { label: 'About', href: '/about' },
+    { label: 'Contact', href: '/contact' },
+    { label: 'External Link', href: 'https://example.com', isExternal: true }
+  ];
+
   return (
     <MainLayout title="Home">
       <Hero
@@ -35,20 +44,63 @@ const HomePage = () => {
         fallbackBackgroundColor="#3f51b5"
       />
       
-      {alertVisible && (
-        <Alert 
-          variant="info" 
-          title="Welcome!"
-          dismissible
-          onDismiss={() => setAlertVisible(false)}
-        >
-          This site demonstrates tenant-aware styling with CSS variables.
-          Different tenants can have completely different looks using the same components.
-        </Alert>
-      )}
+      <Container>
+        <section style={{ margin: '2rem 0' }}>
+          <h2>Navigation Component Examples</h2>
+          
+          <div style={{ marginBottom: '2rem' }}>
+            <h3>Horizontal Navigation (Default)</h3>
+            <Navigation 
+              items={navItems} 
+              orientation="horizontal" 
+              ariaLabel="Horizontal navigation example"
+            />
+          </div>
+          
+          <div>
+            <h3>Vertical Navigation</h3>
+            <Navigation 
+              items={navItems} 
+              orientation="vertical" 
+              ariaLabel="Vertical navigation example"
+            />
+          </div>
+        </section>
+      </Container>
+      
+      <Container>
+        <section style={{ margin: '2rem 0' }}>
+          <h2>Alert Component Examples</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {alertVisible && (
+              <Alert 
+                variant="info" 
+                title="Welcome!"
+                dismissible
+                onDismiss={() => setAlertVisible(false)}
+              >
+                This site demonstrates tenant-aware styling with CSS variables.
+                Different tenants can have completely different looks using the same components.
+              </Alert>
+            )}
+            
+            <Alert variant="success" title="Success">
+              Your changes have been saved successfully.
+            </Alert>
+            
+            <Alert variant="warning" title="Warning">
+              Your session will expire in 5 minutes.
+            </Alert>
+            
+            <Alert variant="error" title="Error">
+              There was a problem processing your request.
+            </Alert>
+          </div>
+        </section>
+      </Container>
       
       <section className="features-section" style={{ marginTop: '3rem' }}>
-        <h2>Our Features</h2>
+        <h2>Card Component Examples</h2>
         <div style={{ 
           display: 'grid', 
           gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
@@ -57,7 +109,7 @@ const HomePage = () => {
         }}>
           <Card 
             variant="elevated"
-            header={<h3>Responsive Design</h3>}
+            header={<h3>Elevated Card</h3>}
           >
             <p>Our components adapt beautifully to any screen size, ensuring a great experience on all devices.</p>
             <div style={{ marginTop: '1rem' }}>
@@ -69,7 +121,7 @@ const HomePage = () => {
           
           <Card 
             variant="outlined"
-            header={<h3>Tenant-Aware Styling</h3>}
+            header={<h3>Outlined Card</h3>}
           >
             <p>The same components can look completely different based on the tenant's theme configuration.</p>
             <div style={{ marginTop: '1rem' }}>
@@ -81,7 +133,7 @@ const HomePage = () => {
           
           <Card 
             variant="default"
-            header={<h3>Customizable</h3>}
+            header={<h3>Default Card</h3>}
           >
             <p>Every aspect of the UI can be customized through the tenant configuration system.</p>
             <div style={{ marginTop: '1rem' }}>
@@ -94,7 +146,7 @@ const HomePage = () => {
       </section>
       
       <section style={{ marginTop: '3rem' }}>
-        <h2>Button Variants</h2>
+        <h2>Button Component Examples</h2>
         <div style={{ 
           display: 'flex', 
           gap: '1rem', 
@@ -107,10 +159,23 @@ const HomePage = () => {
           <Button variant="text">Text Button</Button>
           <Button as="a" href="https://example.com" target="_blank" variant="primary">Link Button</Button>
         </div>
+        
+        <div style={{ 
+          display: 'flex', 
+          gap: '1rem', 
+          flexWrap: 'wrap',
+          marginTop: '1rem' 
+        }}>
+          <Button variant="primary" size="large">Large Button</Button>
+          <Button variant="primary" size="medium">Medium Button</Button>
+          <Button variant="primary" size="small">Small Button</Button>
+          <Button variant="primary" disabled>Disabled Button</Button>
+          <Button variant="primary" isLoading>Loading Button</Button>
+        </div>
       </section>
       
       <section style={{ marginTop: '3rem', marginBottom: '3rem' }}>
-        <h2>Input Example</h2>
+        <h2>Input Component Examples</h2>
         <div style={{ maxWidth: '400px' }}>
           <form onSubmit={handleSubmit}>
             <Input
@@ -129,6 +194,27 @@ const HomePage = () => {
               onChange={handleInputChange}
               placeholder="Enter your email"
               helpText="We'll never share your email with anyone else."
+              fullWidth
+            />
+            <Input
+              label="Password"
+              name="password"
+              type="password"
+              placeholder="Enter password"
+              fullWidth
+            />
+            <Input
+              label="Disabled Input"
+              name="disabled"
+              placeholder="This input is disabled"
+              disabled
+              fullWidth
+            />
+            <Input
+              label="Input with Error"
+              name="error"
+              placeholder="This input has an error"
+              error="This field is required"
               fullWidth
             />
             <Button variant="primary" type="submit">

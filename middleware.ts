@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { getSiteByDomain } from './lib/site/siteService';
+import { getSiteRepository } from './lib/repository';
 import { getCachedSite } from './lib/cache/siteCache';
+import { TenantContext } from './lib/repository/TenantContext';
 
 // This middleware handles tenant resolution based on domain name
 export async function middleware(request: NextRequest) {
@@ -21,12 +22,15 @@ export async function middleware(request: NextRequest) {
   const response = NextResponse.next();
   
   try {
+    // Initialize the site repository
+    const siteRepository = getSiteRepository();
+    
     // First try to get the site from cache for immediate response
     let site = getCachedSite(domain);
     
     if (!site) {
-      // If not in cache, fetch from the database or mock data
-      site = await getSiteByDomain(domain);
+      // If not in cache, fetch from the database 
+      site = await siteRepository.getSiteByDomain(domain);
     }
     
     if (site) {
@@ -43,6 +47,10 @@ export async function middleware(request: NextRequest) {
         httpOnly: false // Allow JS access for client-side tenant awareness
       });
       
+      // Initialize the tenant context for this request
+      const tenantContext = TenantContext.getInstance();
+      tenantContext.setTenantId(site.tenantId);
+      
       // Optionally redirect to maintenance page for sites in maintenance mode
       if (site.status === 'maintenance' && !request.nextUrl.pathname.startsWith('/maintenance')) {
         return NextResponse.redirect(new URL('/maintenance', request.url));
@@ -55,6 +63,24 @@ export async function middleware(request: NextRequest) {
     } else {
       // No site found for this domain
       console.warn(`No site found for domain: ${domain}`);
+      
+      // For development on localhost, we'll set up a default tenant
+      if (process.env.NODE_ENV === 'development' && (hostname === 'localhost:3000' || hostname.startsWith('localhost:'))) {
+        response.headers.set('x-tenant-id', 'default-tenant');
+        response.cookies.set('x-tenant-id', 'default-tenant', { 
+          path: '/',
+          sameSite: 'strict',
+          httpOnly: false
+        });
+        
+        // Initialize the tenant context for this request
+        const tenantContext = TenantContext.getInstance();
+        tenantContext.setTenantId('default-tenant');
+        
+        console.log('[Middleware] Using default development tenant for localhost');
+        return response;
+      }
+      
       response.headers.set('x-tenant-id', 'unknown');
       
       // Optionally redirect to a "site not found" page
@@ -65,7 +91,21 @@ export async function middleware(request: NextRequest) {
     }
   } catch (error) {
     console.error('Error in tenant resolution middleware:', error);
+    
     // In case of error, fall back to a default behavior
+    // For development on localhost, use the default development tenant
+    if (process.env.NODE_ENV === 'development' && (hostname === 'localhost:3000' || hostname.startsWith('localhost:'))) {
+      response.headers.set('x-tenant-id', 'default-tenant');
+      response.cookies.set('x-tenant-id', 'default-tenant', { 
+        path: '/',
+        sameSite: 'strict',
+        httpOnly: false
+      });
+      
+      console.log('[Middleware] Error occurred but using default development tenant for localhost');
+      return response;
+    }
+    
     response.headers.set('x-tenant-id', 'error');
   }
   

@@ -4,7 +4,13 @@
 
 This index serves as the central navigation hub for project documentation. When starting a new AI session, reading these files in the order presented will provide the most efficient onboarding experience.
 
-## Files (Recommended Reading Order)
+## Table of Contents
+### Memory-Bank file index (Recommended Reading Order)
+### Other Project Documentation
+
+## Memory-Bank file index (Recommended Reading Order)
+
+### Index
 
 1. **00-index.md** (this file)
    - Central navigation hub for all project documentation
@@ -62,12 +68,32 @@ This index serves as the central navigation hub for project documentation. When 
     - Project glossary and terminology
     - Common commands and key file locations
 
-## Purpose of the Memory-Bank
+15. **14-feature-notes.md**
+   - A place to keep notes about new feature design and development.  
+   - See the examples in the file to understand what should be recorded.
+
+### Purpose of the Memory-Bank
 
 The Memory-Bank serves as the persistent memory between AI sessions, ensuring continuity in development despite context resets. Each file is maintained with precision to provide comprehensive context for ongoing work.
 
-## Updates and Maintenance
+### Memory-Bank Updates and Maintenance
 
 - All Memory-Bank files should be updated when significant progress is made or when new information is discovered
 - Files should follow a consistent markdown structure with clear section headers
 - The "Last Updated" timestamp should be refreshed whenever changes are made to a file
+
+## Other Project Documentation
+
+### Documents directory: documents/
+
+#### prd.md
+- The Product Requirements Document for this project
+
+### longer-term-optimizations.md
+- Outlines advanced optimizations and improvements to consider for future iterations of the multi-tenant website engine.
+
+### website-flow.md
+- Provides a detailed walkthrough of how the multi-tenant website engine processes HTTP requests from end to end, with special focus on the tenant resolution middleware and theming system.
+
+### caching-research.md
+- Outlines research findings and recommendations for implementing an optimal caching strategy for domain resolution in our multi-tenant website engine
