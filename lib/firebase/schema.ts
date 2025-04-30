@@ -110,6 +110,48 @@ export interface PageDocument {
   author?: string;            // User ID of author
 }
 
+/**
+ * Navigation collection schema
+ * Collection path: 'navigations'
+ */
+export interface NavigationDocument {
+  // Required fields
+  tenantId: string;           // The tenant this navigation belongs to
+  type: string;               // Type of navigation (e.g., 'main', 'footer', 'sidebar')
+  items: NavigationItem[];    // Array of navigation items
+  
+  // Optional fields
+  name?: string;              // Display name for this navigation (for admin purposes)
+  config?: {                  // Configuration options
+    orientation?: 'horizontal' | 'vertical';
+    expandable?: boolean;     // Whether nested items can be expanded/collapsed
+    showIcons?: boolean;      // Whether to display icons
+    ariaLabel?: string;       // Accessibility label
+    [key: string]: any;       // Additional configuration options
+  };
+  
+  // Metadata
+  createdAt?: FirebaseTimestamp;
+  updatedAt?: FirebaseTimestamp;
+}
+
+/**
+ * Navigation item schema (embedded in NavigationDocument)
+ */
+export interface NavigationItem {
+  label: string;              // Display text
+  path: string;               // URL path or action identifier
+  isExternal?: boolean;       // Whether link points to external site
+  icon?: string;              // Optional icon identifier
+  order: number;              // Display order
+  isVisible?: boolean;        // Whether item should be displayed (default: true)
+  children?: NavigationItem[]; // Nested navigation items for dropdown/submenu
+  permissions?: string[];     // Optional permissions required to see this item
+  metadata?: {                // Additional metadata
+    [key: string]: any;
+  };
+}
+
 // Type for Firestore timestamp
 interface FirebaseTimestamp {
   seconds: number;

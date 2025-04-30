@@ -1,30 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-
-export interface NavItem {
-  /**
-   * Display text for the navigation item
-   */
-  label: string;
-  /**
-   * URL path for the navigation item
-   */
-  href: string;
-  /**
-   * Whether the link should open in a new tab
-   */
-  isExternal?: boolean;
-  /**
-   * Unique identifier for the navigation item (used for keys)
-   */
-  id?: string;
-}
+import { useNavigation } from '../../contexts/NavigationContext';
+import { NavigationItem } from '../../lib/firebase/schema';
 
 export interface NavigationProps {
   /**
    * Navigation items to display
    */
-  items: NavItem[];
+  items: NavigationItem[];
   /**
    * Whether the navigation is horizontal (default) or vertical
    */
@@ -37,45 +20,121 @@ export interface NavigationProps {
    * ARIA label for the navigation
    */
   ariaLabel?: string;
+  /**
+   * Whether to expand submenus on hover (horizontal) or click (vertical)
+   */
+  expandable?: boolean;
+  /**
+   * Whether to show icons (if available in the navigation items)
+   */
+  showIcons?: boolean;
+  /**
+   * Current active path for highlighting
+   */
+  activePath?: string;
 }
 
 export const Navigation = React.forwardRef<HTMLElement, NavigationProps>(({
   items,
   orientation = 'horizontal',
   className = '',
-  ariaLabel = 'Main navigation'
+  ariaLabel = 'Main navigation',
+  expandable = true,
+  showIcons = false,
+  activePath
 }, ref) => {
+  const { activeItemPath } = useNavigation();
+  // Use provided activePath or fall back to context
+  const currentPath = activePath || activeItemPath || '';
+  
   const navClasses = [
     'site-navigation',
     `site-navigation-${orientation}`,
     className
   ].filter(Boolean).join(' ');
 
+  // Render nested navigation items recursively
+  const renderItems = (navItems: NavigationItem[], level = 0) => {
+    return navItems.map((item) => {
+      const isExternal = item.isExternal || item.path.startsWith('http');
+      const hasChildren = item.children && item.children.length > 0;
+      
+      // Check if this item or any of its children is active
+      const isActive = currentPath === item.path || 
+        (item.path !== '/' && currentPath.startsWith(item.path));
+      
+      const [isExpanded, setIsExpanded] = useState(false);
+      
+      // Toggle submenu expansion
+      const toggleExpand = (e: React.MouseEvent) => {
+        if (expandable && hasChildren) {
+          e.preventDefault();
+          setIsExpanded(!isExpanded);
+        }
+      };
+      
+      // Generate a stable key
+      const itemKey = `nav-${item.path.replace(/[^a-z0-9]/gi, '-')}-${item.order}`;
+      
+      return (
+        <li 
+          key={itemKey} 
+          className={[
+            hasChildren ? 'has-children' : '',
+            isActive ? 'active' : '',
+            isExpanded ? 'expanded' : ''
+          ].filter(Boolean).join(' ')}
+        >
+          {isExternal ? (
+            <a
+              href={item.path}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={isActive ? 'active' : ''}
+            >
+              {showIcons && item.icon && <span className={`icon ${item.icon}`}></span>}
+              <span className="nav-label">{item.label}</span>
+            </a>
+          ) : (
+            <>
+              <Link 
+                href={item.path}
+                className={isActive ? 'active' : ''}
+              >
+                {showIcons && item.icon && <span className={`icon ${item.icon}`}></span>}
+                <span className="nav-label">{item.label}</span>
+              </Link>
+              
+              {hasChildren && expandable && (
+                <button 
+                  className="expand-toggle"
+                  aria-expanded={isExpanded}
+                  onClick={toggleExpand}
+                  aria-label={`Expand ${item.label} submenu`}
+                >
+                  <span className="visually-hidden">
+                    {isExpanded ? 'Collapse' : 'Expand'}
+                  </span>
+                  <span className="toggle-icon"></span>
+                </button>
+              )}
+            </>
+          )}
+          
+          {hasChildren && (
+            <ul className={`submenu level-${level + 1} ${isExpanded ? 'expanded' : ''}`}>
+              {renderItems(item.children, level + 1)}
+            </ul>
+          )}
+        </li>
+      );
+    });
+  };
+
   return (
     <nav className={navClasses} aria-label={ariaLabel} ref={ref}>
-      <ul>
-        {items.map((item) => {
-          // Use id if provided, otherwise generate a more stable key than index
-          const itemKey = item.id || `nav-${item.href.replace(/[^a-z0-9]/gi, '-')}`;
-          
-          return (
-            <li key={itemKey}>
-              {item.isExternal ? (
-                <a
-                  href={item.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {item.label}
-                </a>
-              ) : (
-                <Link href={item.href}>
-                  {item.label}
-                </Link>
-              )}
-            </li>
-          );
-        })}
+      <ul className="nav-list">
+        {renderItems(items)}
       </ul>
     </nav>
   );

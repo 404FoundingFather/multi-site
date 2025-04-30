@@ -3,8 +3,9 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useSite } from '../../contexts/SiteContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { NavigationProvider } from '../../contexts/NavigationContext';
 import Container from '../common/Container';
-import Navigation from '../common/Navigation';
+import ResponsiveNavigation from '../common/ResponsiveNavigation';
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -22,14 +23,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
     return <div>Loading site configuration...</div>;
   }
   
-  const navItems = [
-    { label: 'Home', href: '/' },
-    { label: 'About', href: '/about' },
-    { label: 'Contact', href: '/contact' }
-  ];
-  
   return (
-    <>
+    <NavigationProvider>
       <Head>
         <title>{pageTitle}</title>
         <meta name="description" content={`${siteName} - Multi-tenant website`} />
@@ -52,7 +47,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
                   </Link>
                 )}
               </div>
-              <Navigation items={navItems} />
+              
+              <ResponsiveNavigation type="main" className="main-header-nav" />
             </div>
           </Container>
         </header>
@@ -66,15 +62,19 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title }) => {
         <footer>
           <Container>
             <div className="footer-content">
-              <p>&copy; {new Date().getFullYear()} {siteName}</p>
-              {site?.config?.contactEmail && (
-                <p>Contact: <a href={`mailto:${site.config.contactEmail}`}>{site.config.contactEmail}</a></p>
-              )}
+              <div className="footer-info">
+                <p>&copy; {new Date().getFullYear()} {siteName}</p>
+                {site?.config?.contactEmail && (
+                  <p>Contact: <a href={`mailto:${site.config.contactEmail}`}>{site.config.contactEmail}</a></p>
+                )}
+              </div>
+              
+              <ResponsiveNavigation type="footer" className="footer-nav" />
             </div>
           </Container>
         </footer>
       </div>
-    </>
+    </NavigationProvider>
   );
 };
 
