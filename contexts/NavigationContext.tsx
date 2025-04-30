@@ -13,6 +13,43 @@ interface NavigationContextType {
   activeItemPath: string | null;
 }
 
+// Default fallback navigation items for development
+const defaultMainNavItems: NavigationItem[] = [
+  {
+    label: 'Home',
+    path: '/',
+    order: 10,
+    isVisible: true
+  },
+  {
+    label: 'About',
+    path: '/about',
+    order: 20,
+    isVisible: true
+  },
+  {
+    label: 'Contact',
+    path: '/contact',
+    order: 30,
+    isVisible: true
+  }
+];
+
+const defaultFooterNavItems: NavigationItem[] = [
+  {
+    label: 'Privacy Policy',
+    path: '/privacy',
+    order: 10,
+    isVisible: true
+  },
+  {
+    label: 'Terms of Service',
+    path: '/terms',
+    order: 20,
+    isVisible: true
+  }
+];
+
 const defaultContext: NavigationContextType = {
   mainNavigation: null,
   footerNavigation: null,
@@ -61,19 +98,31 @@ export const NavigationProvider: React.FC<NavigationProviderProps> = ({ children
 
         // Load main navigation
         const mainNav = await navigationRepository.getNavigationByType('main');
-        if (mainNav) {
+        if (mainNav && mainNav.items && mainNav.items.length > 0) {
           setMainNavigation(navigationRepository.processNavigationItems(mainNav.items));
+        } else {
+          // Use default navigation in development environment
+          if (process.env.NODE_ENV === 'development') {
+            console.info('Using default main navigation for development');
+            setMainNavigation(defaultMainNavItems);
+          }
         }
 
         // Load footer navigation
         const footerNav = await navigationRepository.getNavigationByType('footer');
-        if (footerNav) {
+        if (footerNav && footerNav.items && footerNav.items.length > 0) {
           setFooterNavigation(navigationRepository.processNavigationItems(footerNav.items));
+        } else {
+          // Use default navigation in development environment
+          if (process.env.NODE_ENV === 'development') {
+            console.info('Using default footer navigation for development');
+            setFooterNavigation(defaultFooterNavItems);
+          }
         }
 
         // Load sidebar navigation
         const sidebarNav = await navigationRepository.getNavigationByType('sidebar');
-        if (sidebarNav) {
+        if (sidebarNav && sidebarNav.items && sidebarNav.items.length > 0) {
           setSidebarNavigation(navigationRepository.processNavigationItems(sidebarNav.items));
         }
 
@@ -81,6 +130,13 @@ export const NavigationProvider: React.FC<NavigationProviderProps> = ({ children
       } catch (err) {
         console.error('Error loading navigation data:', err);
         setError(err instanceof Error ? err : new Error(String(err)));
+        
+        // Use default navigation in development environment when there's an error
+        if (process.env.NODE_ENV === 'development') {
+          console.info('Error occurred. Using default navigation for development');
+          setMainNavigation(defaultMainNavItems);
+          setFooterNavigation(defaultFooterNavItems);
+        }
       } finally {
         setIsLoading(false);
       }
